@@ -1,0 +1,19 @@
+(ns nrepl.version
+  {:author "Colin Jones"
+   :added  "0.5.0"})
+
+(def ^{:private true} version-string
+  "Current version of nREPL as a string.
+  See also `version`."
+  (let [result (application/get_key :nrepl :vsn)]
+    (if (= (first result) :ok) (last result) "0.0.0")))
+
+(def version
+  "Current version of nREPL.
+  Map of :major, :minor, :incremental, :qualifier, and :version-string."
+  (assoc (->> version-string
+              (re-find #"(\d+)\.(\d+)\.(\d+)-?(.*)")
+              rest
+              (map #(first (string/to_integer %)))
+              (zipmap [:major :minor :incremental :qualifier]))
+         :version-string version-string))

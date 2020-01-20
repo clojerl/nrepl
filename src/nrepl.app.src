@@ -1,0 +1,13 @@
+{ application, 'nrepl'
+, [ {vsn, "0.0.1"}
+  , {description, "A Clojerl application"}
+  , {modules, []}
+  , { applications
+    , [ stdlib
+      , kernel
+      , clojerl
+      ]
+    }
+  , {mod, {'nrepl.app', []}}
+  ]
+}.

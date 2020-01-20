@@ -1,0 +1,8 @@
+(ns nrepl.version-test
+  (:require [clojure.test :refer :all]
+            [nrepl.version :refer :all]))
+
+(deftest get-version
+  (is (= (get version :major) 0))
+  (is (= (get version :minor) 0))
+  (is (= (get version :incremental) 0)))

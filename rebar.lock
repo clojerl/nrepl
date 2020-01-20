@@ -1,0 +1,10 @@
+{"1.1.0",
+[{<<"clojerl">>,{pkg,<<"clojerl">>,<<"0.5.1">>},0},
+ {<<"uuid">>,
+  {git,"https://github.com/avtobiff/erlang-uuid.git",
+       {ref,"cb02a2039a9b29dd2eef0446039c9c6e164df9ef"}},
+  0}]}.
+[
+{pkg_hash,[
+ {<<"clojerl">>, <<"DECC6E777D837FDD3792AADA3D0E40E55EF98126B995155295939CD4E539B445">>}]}
+].

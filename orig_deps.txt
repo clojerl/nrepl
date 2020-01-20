@@ -1,0 +1,155 @@
+(ns nrepl.ack
+  (:require
+   [nrepl.core :as nrepl]
+   [nrepl.transport :as t]))
+
+(ns nrepl.bencode
+  (:require [clojure.java.io :as io])
+  (:import clojure.lang.RT
+           [java.io ByteArrayOutputStream
+            EOFException
+            InputStream
+            IOException
+            OutputStream
+            PushbackInputStream]))
+
+(ns nrepl.cmdline
+  (:require
+   [clojure.java.io :as io]
+   [clojure.edn :as edn]
+   [clojure.string :as str]
+   [nrepl.config :as config]
+   [nrepl.core :as nrepl]
+   [nrepl.ack :refer [send-ack]]
+   [nrepl.server :as nrepl-server]
+   [nrepl.transport :as transport]
+   [nrepl.version :as version]))
+
+(ns nrepl.config
+  (:require
+   [clojure.java.io :as io]
+   [clojure.edn :as edn]))
+
+(ns nrepl.core
+  (:require
+   clojure.set
+   [nrepl.misc :refer [uuid]]
+   [nrepl.transport :as transport]
+   [nrepl.version :as version])
+  (:import
+   clojure.lang.LineNumberingPushbackReader
+   [java.io Reader StringReader Writer PrintWriter]))
+
+(ns nrepl.helpers
+  (:require
+   [nrepl.middleware.load-file :as load-file])
+  (:import
+   (java.io File StringReader)))
+
+(ns nrepl.middleware
+  (:refer-clojure :exclude [comparator])
+  (:require
+   [clojure.set :as set]
+   [nrepl.misc :as misc]
+   [nrepl.transport :as transport]
+   [nrepl.version :as version]))
+
+(ns nrepl.misc
+  (:refer-clojure :exclude [requiring-resolve]))
+
+(ns nrepl.server
+  (:require
+   [nrepl.ack :as ack]
+   [nrepl.middleware :as middleware]
+   nrepl.middleware.interruptible-eval
+   nrepl.middleware.load-file
+   nrepl.middleware.session
+   nrepl.middleware.sideloader
+   [nrepl.misc :refer [log response-for returning]]
+   [nrepl.transport :as t])
+  (:import
+   [java.net InetAddress InetSocketAddress ServerSocket Socket SocketException]))
+
+(ns nrepl.transport
+  (:refer-clojure :exclude [send])
+  (:require
+   [clojure.java.io :as io]
+   [clojure.walk :as walk]
+   [nrepl.bencode :as bencode]
+   [clojure.edn :as edn]
+   [nrepl.misc :refer [uuid]]
+   nrepl.version)
+  (:import
+   clojure.lang.RT
+   [java.io EOFException PushbackInputStream PushbackReader]
+   [java.net Socket SocketException]
+   [java.util.concurrent BlockingQueue LinkedBlockingQueue SynchronousQueue TimeUnit]))
+
+---------------------- Middleware ---------------------------
+
+(ns nrepl.middleware.caught
+  (:require
+   [clojure.main]
+   [nrepl.middleware :refer [set-descriptor!]]
+   [nrepl.middleware.print :as print]
+   [nrepl.misc :as misc]
+   [nrepl.transport :as transport])
+  (:import
+   (nrepl.transport Transport)))
+
+(ns nrepl.middleware.interruptible-eval
+  (:require
+   clojure.main
+   clojure.test
+   [nrepl.middleware :refer [set-descriptor!]]
+   [nrepl.middleware.caught :as caught]
+   [nrepl.middleware.print :as print]
+   [nrepl.misc :refer [response-for]]
+   [nrepl.transport :as t])
+  (:import
+   (clojure.lang Compiler$CompilerException LineNumberingPushbackReader)
+   (java.io FilterReader LineNumberReader StringReader Writer)
+   (java.lang.reflect Field)))
+
+(ns nrepl.middleware.load-file
+  (:require
+   [nrepl.middleware :as middleware :refer [set-descriptor!]]
+   [nrepl.middleware.caught :as caught]
+   [nrepl.middleware.interruptible-eval :as eval]
+   [nrepl.middleware.print :as print])
+  (:import nrepl.transport.Transport))
+
+(ns nrepl.middleware.print
+  (:refer-clojure :exclude [print])
+  (:require
+   [nrepl.middleware :refer [set-descriptor!]]
+   [nrepl.misc :as misc]
+   [nrepl.transport :as transport])
+  (:import
+   (java.io BufferedWriter PrintWriter StringWriter Writer)
+   (nrepl QuotaExceeded)
+   (nrepl.transport Transport)))
+
+(ns nrepl.middleware.session
+  (:require
+   clojure.main
+   [nrepl.middleware :refer [set-descriptor!]]
+   [nrepl.middleware.interruptible-eval :refer [*msg* evaluate]]
+   [nrepl.misc :refer [uuid response-for]]
+   [nrepl.transport :as t])
+  (:import
+   (clojure.lang Compiler$CompilerException LineNumberingPushbackReader)
+   (java.io Reader)
+   (java.util.concurrent.atomic AtomicLong)
+   (java.util.concurrent BlockingQueue LinkedBlockingQueue SynchronousQueue
+                         Executor ExecutorService
+                         ThreadFactory ThreadPoolExecutor
+                         TimeUnit)))
+
+(ns nrepl.middleware.sideloader
+  (:require
+   [clojure.java.io :as io]
+   [nrepl.middleware :as middleware :refer [set-descriptor!]]
+   [nrepl.misc :refer [response-for]]
+   [nrepl.transport :as t])
+  (:import nrepl.transport.Transport))
