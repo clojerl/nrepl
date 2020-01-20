@@ -49,7 +49,7 @@
       {})))
 
 ;; MB: if this is called too often we should consider putting this into an Atom.
-(defn- config []
+(defn- config
   "Configuration map.
   It's created by merging the global configuration file
   with a local configuration file that would normally
