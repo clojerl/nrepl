@@ -9,7 +9,7 @@
   any local config file (.nrepl.edn) if present.
   The values in the local config file take precedence."
   {:author "Bozhidar Batsov"
-   :added  "0.5.0"}
+   :added  "0.5"}
   (:require
    [clojure.erlang.io :as io]
    [clojure.edn :as edn]))
@@ -25,37 +25,41 @@
   with the NREPL_CONFIG_DIR env variable."
   []
   (or (os/getenv #erl"NREPL_CONFIG_DIR")
-      (filename/join home-dir ".nrepl")))
+      (filename/join (home-dir) ".nrepl")))
 
 (defn- config-file
   "nREPL's config file."
   []
-  (filename/join config-dir "nrepl.edn"))
+  (filename/join (config-dir) "nrepl.edn"))
 
 (defn- load-edn
   "Load edn from an io/reader source (filename or io/resource)."
   [source]
-  (with-open [r (io/reader source)]
-    (edn/read (erlang.io.PushbackReader. r))))
+  (with-open [pbr (erlang.io.PushbackReader. (io/reader source))]
+    (edn/read pbr)))
 
 (defn- load-config
   "Load the configuration file identified by `filename`.
   Return its contents as EDN if the file exists,
   or an empty map otherwise."
   [filename]
-  (let [file (io/file filename)]
-    (if (.exists file)
-      (load-edn file)
-      {})))
+  (if (filelib/is_regular filename)
+    (load-edn (io/file filename))
+    {}))
+
+(def config-cache (atom nil))
 
 ;; MB: if this is called too often we should consider putting this into an Atom.
-(defn- config
+(defn config
   "Configuration map.
   It's created by merging the global configuration file
   with a local configuration file that would normally
   the placed in the directory in which you're running
   nREPL."
   []
-  (merge
-   (load-config config-file)
-   (load-config ".nrepl.edn")))
+  (if-let [config @config-cache]
+    config
+    (reset! config-cache
+            (merge
+             (load-config (config-file))
+             (load-config ".nrepl.edn")))))
